@@ -6,8 +6,8 @@ const CONFIG = {
     role: "backend developer",
     bio: "I develop everything using spring.",
     email: "k74415834@gmail.com",
-    linkedin: "kimsiwoo",
-    github: "kimsiwoo",
+    linkedin: "시우-김-0a1451286",
+    github: "seate",
     instagram: "",
   },
   projects: [
