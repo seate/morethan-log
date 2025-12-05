@@ -35,7 +35,7 @@ const useScheme = (): [SchemeType, SetScheme] => {
         : "light"
       : data
     setScheme(cachedScheme || defaultScheme)
-  }, [])
+  }, [data, followsSystemTheme, setScheme])
 
   return [data, setScheme]
 }
