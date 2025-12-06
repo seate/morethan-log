@@ -20,9 +20,11 @@ const MobileProfileCard: React.FC<Props> = () => {
             css={{ position: "relative", borderRadius: "50%", objectFit: "cover" }}
             alt="profile_image"
           />
-          <div className="wrapper">
-            <div className="top">{CONFIG.profile.name}</div>
-            <div className="mid">{CONFIG.profile.role}</div>
+          <div className="content-wrapper">
+            <div className="col">
+              <div className="top">{CONFIG.profile.name}</div>
+              <div className="mid">{CONFIG.profile.role}</div>
+            </div>
             <div className="btm">{CONFIG.profile.bio}</div>
           </div>
         </div>
@@ -52,25 +54,40 @@ const StyledWrapper = styled.div`
       theme.scheme === "light" ? "white" : theme.colors.gray4};
     > .wrapper {
       display: flex;
-      gap: 0.5rem;
+      gap: 2.5rem;
       align-items: center;
-      > .wrapper {
-        height: fit-content;
-        > .top {
-          font-size: 1.25rem;
-          line-height: 1.75rem;
-          font-style: italic;
-          font-weight: 700;
+
+      > .content-wrapper {
+        display: flex;
+        flex-direction: row;
+        gap: 2.0rem;
+        flex: 1;
+
+        > .col {
+          display: flex;
+          flex-direction: column;
+          min-width: fit-content;
+
+          > .top {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-style: italic;
+            font-weight: 700;
+          }
+          > .mid {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            color: ${({ theme }) => theme.colors.gray11};
+          }
         }
-        > .mid {
-          margin-bottom: 0.5rem;
-          font-size: 0.875rem;
-          line-height: 1.25rem;
-          color: ${({ theme }) => theme.colors.gray11};
-        }
+
         > .btm {
           font-size: 0.875rem;
           line-height: 1.25rem;
+          white-space: pre-wrap;
+          flex: 1;
+          display: flex;
+          align-items: center;
         }
       }
     }
