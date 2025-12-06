@@ -3,7 +3,7 @@ const CONFIG = {
   profile: {
     name: "kimsiwoo",
     image: "/avatar.png", // If you want to create your own notion avatar, check out https://notion-avatar.vercel.app
-    role: "backend developer",
+    role: "Backend Developer",
     bio: "I develop everything using spring.",
     email: "k74415834@gmail.com",
     linkedin: "시우-김-0a1451286",
@@ -14,11 +14,7 @@ const CONFIG = {
     {
       name: `YOGER`,
       href: "https://github.com/seate/yoger-order-pay-service",
-    },
-    {
-      name: `GameVal`,
-      href: "https://github.com/seate/gameVal_backend",
-    },
+    }
   ],
   // blog setting (required)
   blog: {
