@@ -12,9 +12,9 @@ async function getPageProperties(
   const rawProperties = Object.entries(block?.[id]?.value?.properties || [])
   const excludeProperties = ["date", "select", "multi_select", "person", "file"]
   const properties: any = {}
+  properties.id = id
   for (let i = 0; i < rawProperties.length; i++) {
     const [key, val]: any = rawProperties[i]
-    properties.id = id
     if (schema[key]?.type && !excludeProperties.includes(schema[key].type)) {
       properties[schema[key].name] = getTextContent(val)
     } else {
@@ -82,4 +82,4 @@ async function getPageProperties(
   return properties
 }
 
-export { getPageProperties as default }
+export default getPageProperties

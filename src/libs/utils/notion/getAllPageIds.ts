@@ -6,7 +6,13 @@ export default function getAllPageIds(
   viewId?: string
 ) {
   const collectionQuery = response.collection_query
+  if (!collectionQuery) {
+    return []
+  }
   const views = Object.values(collectionQuery)[0]
+  if (!views) {
+    return []
+  }
 
   let pageIds: ID[] = []
   if (viewId) {

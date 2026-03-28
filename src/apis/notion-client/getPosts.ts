@@ -1,59 +1,100 @@
 import { CONFIG } from "site.config"
-import { NotionAPI } from "notion-client"
 import { idToUuid } from "notion-utils"
+import { notionApi, queuedNotionId } from "./index"
+import fs from "fs"
+import path from "path"
 
 import getAllPageIds from "src/libs/utils/notion/getAllPageIds"
 import getPageProperties from "src/libs/utils/notion/getPageProperties"
 import { TPosts } from "src/types"
 
-/**
- * @param {{ includePages: boolean }} - false: posts only / true: include pages
- */
+const CACHE_DIR = path.join(process.cwd(), ".next/cache")
+const CACHE_PATH = path.join(CACHE_DIR, "notion-posts.json")
 
-// TODO: react query를 사용해서 처음 불러온 뒤로는 해당데이터만 사용하도록 수정
 export const getPosts = async () => {
-  let id = CONFIG.notionConfig.pageId as string
-  const api = new NotionAPI()
+  // 1. 파일 캐시 확인 (개발 모드에서 효율적)
+  if (fs.existsSync(CACHE_PATH)) {
+    try {
+      const stats = fs.statSync(CACHE_PATH)
+      // 캐시 유효 시간: 10분
+      const isOld = Date.now() - stats.mtimeMs > 1000 * 60 * 10
+      if (!isOld) {
+        const cacheData = fs.readFileSync(CACHE_PATH, "utf-8")
+        console.log("getPosts: Loading from file cache...")
+        return JSON.parse(cacheData) as TPosts
+      }
+    } catch (e) {
+      console.warn("getPosts: Cache read error, fetching from Notion...")
+    }
+  }
 
-  const response = await api.getPage(id)
-  id = idToUuid(id)
-  const collection = Object.values(response.collection)[0]?.value
-  const block = response.block
-  const schema = collection?.schema
+  try {
+    const originalId = CONFIG.notionConfig.pageId as string
+    
+    console.log("getPosts: Fetching from Notion (this may take a while)...")
+    const mainDbResponse = await queuedNotionId(() => notionApi.getPage(originalId))
 
-  const rawMetadata = block[id].value
-
-  // Check Type
-  if (
-    rawMetadata?.type !== "collection_view_page" &&
-    rawMetadata?.type !== "collection_view"
-  ) {
-    return []
-  } else {
-    // Construct Data
-    const pageIds = getAllPageIds(response)
-    const data = []
-    for (let i = 0; i < pageIds.length; i++) {
-      const id = pageIds[i]
-      const properties = (await getPageProperties(id, block, schema)) || null
-      // Add fullwidth, createdtime to properties
-      properties.createdTime = new Date(
-        block[id].value?.created_time
-      ).toString()
-      properties.fullWidth =
-        (block[id].value?.format as any)?.page_full_width ?? false
-
-      data.push(properties)
+    if (!mainDbResponse.collection || Object.keys(mainDbResponse.collection).length === 0) {
+      console.error("getPosts: ERROR: No collection found")
+      return []
     }
 
-    // Sort by date
+    const collectionId = Object.keys(mainDbResponse.collection)[0]
+    const collectionRecord = mainDbResponse.collection[collectionId]
+    const collection = collectionRecord?.value
+    const schema = collection?.schema || (collectionRecord as any)?.schema || (collection as any)?.value?.schema
+
+    if (!schema) {
+      console.error("getPosts: ERROR: Schema not found")
+      return []
+    }
+
+    const pageIds = getAllPageIds(mainDbResponse)
+    const data = []
+
+    for (let i = 0; i < pageIds.length; i++) {
+      const postId = pageIds[i]
+      try {
+        const postResponse = await queuedNotionId(() => notionApi.getPage(postId))
+        const postBlock = postResponse.block
+
+        if (!postBlock[postId]?.value) continue
+
+        const properties = (await getPageProperties(postId, postBlock, schema)) || null
+        properties.createdTime = new Date(postBlock[postId].value?.created_time).toString()
+        properties.fullWidth = (postBlock[postId].value?.format as any)?.page_full_width ?? false
+
+        data.push(properties)
+        console.log(`getPosts: [${i + 1}/${pageIds.length}] fetched: ${properties.title}`)
+      } catch (error: any) {
+        console.error(`getPosts: Error for ${postId}:`, error.message)
+        if (error.message.includes("429")) {
+          console.warn("getPosts: Rate limited. Stopping and saving partial cache.")
+          break
+        }
+      }
+    }
+
     data.sort((a: any, b: any) => {
       const dateA: any = new Date(a?.date?.start_date || a.createdTime)
       const dateB: any = new Date(b?.date?.start_date || b.createdTime)
       return dateB - dateA
     })
 
-    const posts = data as TPosts
-    return posts
+    // 2. 파일 캐시 저장
+    try {
+      if (!fs.existsSync(CACHE_DIR)) {
+        fs.mkdirSync(CACHE_DIR, { recursive: true })
+      }
+      fs.writeFileSync(CACHE_PATH, JSON.stringify(data), "utf-8")
+      console.log("getPosts: Cache saved to file.")
+    } catch (e) {
+      console.warn("getPosts: Failed to write cache file")
+    }
+
+    return data as TPosts
+  } catch (error) {
+    console.error("getPosts: critical error", error)
+    return []
   }
 }
