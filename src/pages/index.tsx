@@ -1,6 +1,6 @@
 import Feed from "src/routes/Feed"
 import { CONFIG } from "../../site.config"
-import { NextPageWithLayout } from "../types"
+import { NextPageWithLayout, TPosts } from "../types"
 import { getPosts } from "../apis"
 import MetaConfig from "src/components/MetaConfig"
 import { queryClient } from "src/libs/react-query"
